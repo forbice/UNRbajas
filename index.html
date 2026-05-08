@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Baja de Estudiantes - UNR (Nube de Focos)</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Inter:wght@400;600&family=Libre+Baskerville&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-color: #064889;
+      --grid-color: rgba(255, 255, 255, 0.5);
+      --panel-bg: rgba(4, 34, 70, 0.95);
+      --text-main: #f0f4ff;
+      --active-color: #e6691b;
+      --inactive-color: #888888;
+      
+      --font-ui: 'Inter', sans-serif;
+      --font-hand: 'Caveat', 'Gill Sans Nova', 'Gill Sans', Calibri, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body, html {
+      width: 100%; 
+      height: 100%;
+      overflow: hidden;
+      font-family: var(--font-ui);
+      background-color: var(--bg-color);
+      background-image: 
+        linear-gradient(var(--grid-color) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+      background-size: 50px 50px;
+      color: var(--text-main);
+    }
+
+    /* HEADER FIJO */
+    #top-header {
+      position: fixed;
+      top: 0; left: 0; width: 100%;
+      height: 70px;
+      background: rgba(4, 34, 70, 0.85);
+      backdrop-filter: blur(4px);
+      border-bottom: 1px solid var(--grid-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+      z-index: 500;
+    }
+
+    .nav-btn {
+      background: none; border: none; color: var(--text-main);
+      font-size: 2rem; font-weight: 300; cursor: pointer;
+      padding: 0 15px; transition: color 0.2s, transform 0.2s;
+    }
+    .nav-btn:hover { color: var(--active-color); transform: scale(1.1); }
+
+    .header-center {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      flex: 1; overflow: hidden;
+    }
+
+    #faculty-title {
+      height: 35px; display: flex; align-items: center; justify-content: center; width: 100%;
+    }
+    #faculty-title svg {
+      max-height: 100%; max-width: 100%;
+      font-family: 'Old Press', 'Libre Baskerville', serif !important; 
+    }
+
+    .counters {
+      font-size: 0.75rem; font-weight: 600; margin-top: 5px;
+      display: flex; gap: 20px; letter-spacing: 1px;
+    }
+    .c-activos { color: var(--active-color); }
+    .c-inactivos { color: #cccccc; }
+
+    /* CONTENEDOR DE LA NUBE */
+    #cloud-area {
+      position: absolute;
+      top: 70px; width: 100vw; height: calc(100vh - 150px);
+      overflow: hidden;
+    }
+
+    /* EL FOCO */
+    .foco-wrapper {
+      position: absolute;
+      width: 20px;
+      height: 35px;
+      cursor: pointer;
+      transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.3s;
+      transform-origin: center center;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .foco-wrapper svg {
+      width: 100%; height: 100%; display: block; pointer-events: none;
+    }
+
+    .foco-wrapper.inactivo { opacity: 0.7; }
+
+    /* Hover */
+    .foco-wrapper:hover, .foco-wrapper.hovered {
+      z-index: 100;
+      transform: translate(-50%, -50%) scale(5); 
+      filter: drop-shadow(0 0 2px rgba(230, 105, 27, 0.8));
+      opacity: 1;
+    }
+    
+    .foco-wrapper.inactivo:hover {
+      filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.6));
+    }
+
+    /* TOOLTIP MANUSCRITO */
+    #tooltip {
+      position: fixed; background: #fdfbf7; color: #1a1a1a;
+      padding: 15px 25px; width: max-content; max-width: 280px;
+      pointer-events: none; opacity: 0; visibility: hidden;
+      transition: opacity 0.15s ease; z-index: 1000;
+      box-shadow: 3px 5px 15px rgba(0,0,0,0.4);
+      border-radius: 2px 5px 3px 4px; 
+      border-left: 5px solid var(--active-color);
+    }
+    #tooltip.show { opacity: 1; visibility: visible; }
+    #tooltip.inactivo-style { border-left: 5px solid var(--inactive-color); }
+    
+    .tt-nombre {
+      font-family: var(--font-ui); font-weight: 600; font-size: 0.65rem;
+      text-transform: uppercase; letter-spacing: 1px; color: #666;
+      margin-bottom: 2px; display: block;
+    }
+    
+    .tt-frase {
+      font-family: var(--font-hand); font-size: 1.6rem; line-height: 1.1; color: #111;
+    }
+
+    /* PANEL INFERIOR Y FORMULARIO */
+    #bottom-panel {
+      position: fixed; bottom: 0; left: 0; width: 100%; height: 80px;
+      background: var(--panel-bg); border-top: 1px solid var(--grid-color);
+      display: flex; justify-content: center; align-items: center;
+      padding: 0 20px; z-index: 500; backdrop-filter: blur(5px);
+    }
+
+    #form-experiencia {
+      display: flex; gap: 15px; align-items: center; width: 100%; max-width: 900px;
+    }
+
+    .input-group {
+      display: flex; gap: 10px; flex: 1;
+    }
+
+    .input-group input {
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);
+      color: #fff; padding: 10px 12px; border-radius: 4px;
+      font-family: var(--font-ui); font-size: 0.9rem; outline: none;
+      transition: border-color 0.2s;
+    }
+    .input-group input:focus { border-color: var(--active-color); }
+    .input-group input::placeholder { color: rgba(255,255,255,0.5); }
+    
+    #input-nombre { flex: 1; max-width: 140px; }
+    #input-edad { width: 70px; }
+    #input-frase { flex: 2; }
+
+    /* TOGGLE SWITCH */
+    .toggle-container {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.8);
+    }
+    .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: var(--inactive-color); transition: .4s; border-radius: 34px;
+    }
+    .slider:before {
+      position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px;
+      background-color: white; transition: .4s; border-radius: 50%;
+    }
+    input:checked + .slider { background-color: var(--active-color); }
+    input:checked + .slider:before { transform: translateX(24px); }
+
+    #form-experiencia button {
+      background: var(--active-color); color: #fff; border: none;
+      padding: 11px 20px; border-radius: 4px; font-family: var(--font-ui);
+      font-weight: 600; cursor: pointer; transition: background 0.2s;
+    }
+    #form-experiencia button:hover { background: #ff7d2b; }
+
+    @media (max-width: 768px) {
+      #top-header { height: 90px; padding: 10px; align-items: flex-start; }
+      .nav-btn { margin-top: 15px; }
+      #cloud-area { top: 90px; height: calc(100vh - 250px); }
+      #bottom-panel { height: auto; padding: 15px; }
+      #form-experiencia { flex-direction: column; gap: 15px; }
+      .input-group { flex-wrap: wrap; width: 100%; }
+      #input-nombre { flex: 1; max-width: none; }
+      #input-edad { width: 80px; }
+      #input-frase { width: 100%; }
+      .toggle-container { width: 100%; justify-content: center; }
+      #form-experiencia button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- CABECERA FIJA -->
+  <header id="top-header">
+    <button class="nav-btn" id="btn-prev">&lt;</button>
+    <div class="header-center">
+      <div id="faculty-title"></div>
+      <div class="counters">
+        <span class="c-activos">ACTIVOS: <span id="count-activos"></span></span>
+        <span class="c-inactivos">INACTIVOS: <span id="count-inactivos"></span></span>
+      </div>
+    </div>
+    <button class="nav-btn" id="btn-next">&gt;</button>
+  </header>
+
+  <!-- CONTENEDOR DE LA NUBE -->
+  <div id="cloud-area"></div>
+
+  <!-- TOOLTIP FLOTANTE -->
+  <div id="tooltip">
+    <span class="tt-nombre" id="tt-nombre"></span>
+    <p class="tt-frase" id="tt-frase"></p>
+  </div>
+
+  <!-- PANEL INFERIOR -->
+  <div id="bottom-panel">
+    <form id="form-experiencia">
+      <div class="input-group">
+        <input type="text" id="input-nombre" placeholder="Nombre" required>
+        <input type="number" id="input-edad" placeholder="Edad" required min="17" max="99">
+        <input type="text" id="input-frase" placeholder="Contá tu experiencia en la UNR" autocomplete="off" required>
+      </div>
+      
+      <div class="toggle-container">
+        <span>Inactivo</span>
+        <label class="switch">
+          <input type="checkbox" id="input-estado" checked>
+          <span class="slider"></span>
+        </label>
+        <span>Activo</span>
+      </div>
+      <button type="submit">Sumar</button>
+    </form>
+  </div>
+
+  <script>
+    // 1. DECLARACIÓN DE LOS SVGs INMENSOS CON BACKTICKS
+    const svgActivo = `<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Capa_2" data-name="Capa 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 166.07 285.82">
+  <defs>
+    <style>
+      .act-1 {
+        fill: #e6691b;
+      }
+      .act-1, .act-2 {
+        stroke-width: 0px;
+      }
+      .act-2 {
+        fill: #e9821a;
+      }
+    </style>
+  </defs>
+  <g id="Capa_1-2" data-name="Capa 1">
+    <g>
+      <path class="act-1" d="m37.14,170.99c-.11-.1-.15-.23-.15-.38.26-.3,0-.4-.2-.53-.18-.17-.24-.38-.24-.62.06-.35-.03-.63-.34-.83-.33-.41-.5-.88-.55-1.4,0-.11-.04-.19-.13-.25-.05-.03-.06-.07-.05-.13.02-.18,0-.34-.21-.4-.3-.36-.4-.81-.52-1.24.02-.17,0-.32-.17-.41,0,0,0,0,0,0,.02-.16-.01-.29-.17-.37-.05-.01-.06-.04-.04-.09.01-.12-.03-.21-.14-.28-.05-.02-.06-.05-.04-.09,0-.12-.04-.21-.14-.27,0,0,0-.02,0-.02-.13-.6-.2-1.23-.79-1.6-.11-.05-.13-.14-.12-.24-.03-.26.1-.61-.31-.7-.02-.05-.05-.11-.07-.16.03-.32,0-.61-.37-.73,0,0,0,0,0,0,.02-.16-.01-.3-.17-.37,0,0,0,0,0,0,0-.16-.03-.29-.19-.36,0,0,0,0,0,0,.01-.16-.02-.3-.2-.36,0,0,0,0,0,0,0-.1-.04-.17-.13-.22,0,0-.02-.04-.02-.04,0-.04-.02-.07-.05-.09-.11-.09-.16-.21-.17-.35,0-.1-.04-.18-.13-.23-.96-1.72-1.91-3.45-2.89-5.16-1.84-3.21-3.77-6.37-5.74-9.51-3.8-6.04-7.74-11.98-11.22-18.22-2.92-5.23-5.45-10.64-7.37-16.33-1.66-4.93-2.8-9.98-3.47-15.14C-.03,88.71-.12,83.53.11,78.34c.28-6.21,1.34-12.29,3.05-18.27.91-3.19,2.02-6.3,3.27-9.36.23-.56.5-1.11.84-1.61.46-.68.86-1.4,1.12-2.18.91-2.77,2.47-5.21,3.96-7.67,2.25-3.69,4.82-7.14,7.63-10.42,3.89-4.54,8.22-8.6,12.99-12.2,4.77-3.6,9.87-6.64,15.29-9.15,5.7-2.64,11.62-4.58,17.76-5.86,3.16-.66,6.34-1.11,9.54-1.43,3.03-.3,6.07-.1,9.1-.17,4.48-.1,8.91.39,13.31,1.19,5,.91,9.87,2.27,14.62,4.08,6.62,2.52,12.8,5.85,18.57,9.94,6.43,4.56,12.08,9.95,16.99,16.12,4.06,5.11,7.46,10.63,10.22,16.54,1.9,4.08,3.45,8.29,4.65,12.63,1.57,5.66,2.55,11.42,2.89,17.29.18,3.04.21,6.07.06,9.11-.24,4.83-.97,9.6-2.18,14.28-1.26,4.89-2.94,9.63-4.99,14.24-2.44,5.47-5.29,10.72-8.31,15.88-3.68,6.29-7.59,12.44-11.24,18.74-3.64,6.28-7.04,12.69-9.83,19.4-1.99,4.78-3.42,9.72-4.44,14.8-.85,4.23-1.31,8.51-1.8,12.79-.29,2.5-.52,5.01-1.01,7.48-.5,2.51-1.11,4.98-2.48,7.18-.28.45.01.82-.07,1.21-.08.41-.66.45-.66.93,0,.48.07.97-.06,1.45-.13.07-.32.2-.38.01-.25-.71-.88-.77-1.52-1.01.07.72-.03,1.34.12,1.98.1.42.15.9-.33,1.28-.27.21-.17.72-.41,1.04.6.3-.02.39-.11.52-.52.71-1.58.8-1.99,1.66-.03.06-.18.11-.24.08-.38-.16-.61.15-.9.22-.4.1-.71.42-1.25.29-.39-.1-1.03-.07-1.37.44-.07.1-.19.17-.32.13-.9-.31-1.74.22-2.65.17-.97-.05-1.99.27-2.98.42-1.12.17-2.29-.13-3.36.37-.11.05-.3-.03-.44-.08-.24-.09-.47-.09-.71.01-.26.11-.53.1-.8.04-.67-.14-1.36-.03-2.03-.02-.65,0-1.33.06-1.99.06-.44,0-.9-.02-1.32-.05-.56-.05-1.27.35-1.76-.42-.27-.42-.44-.66-.02-.97.36-.27.74-.56,1.22-.53.49.02.56-.4.78-.66.27-.32.79.03,1.05-.4.12-.2.1-.49.38-.59.42-.15.33-.46.19-.75-.26-.56-.4-1.14-.44-1.75-.01-.2-.07-.34-.28-.41-.51-.17-1.01-.42-1.53-.51-.88-.16-1.7-.53-2.57-.71-.32-.07-.59-.29-.83-.54-.19-.2-.23-.4-.25-.65-.04-.38.49-.05.46-.39-.84-.81-1.94-.47-2.91-.56-.42-.04-.89-.27-1.32-.08-.7.3-1.43-.2-2.12.14-.7-.39-1.42.17-2.13-.04-.17-.05-.45.03-.6.15-.22.17-.4.16-.66.12-.64-.09-.93.15-1.11.77-.09.32-.25.63-.28.95-.03.29-.11.36-.39.46-1.32.46-2.7.65-4.03,1.05-.67.2-1.34.35-2.02.53-.26.07-.61.1-.64.4-.04.37.37.32.6.42.33.15.72.17.98.46.57.64.25,2.51-.51,2.91-.19.1-.44.08-.33.4.09.25.13.55.51.53.24-.01.49,0,.73,0,.66-.02,1.32.06,1.95.21.75.18,1.48.47,2.22.7.26.08.58.11.63.43.05.33-.22.67-.44.73-.77.21-1.33.84-2.11,1-1.01.21-1.96.63-2.93.97-.58.21-1.01.58-1.36,1.13.39.1.7.17,1.02.25.92.23.91.23.93,1.21,0,.36-.12.76.09,1.07.29.44.02.6-.29.76-.11.05-.24.07-.34.12-.42.21-.45.45-.1.74.44.36.98.53,1.52.47,1.23-.14,2.36.26,3.49.6.68.2.63.35.23.98-.28.44-.66.67-1.13.82-.42.13-.9.17-1.17.62-.05.08-.21.09-.33.12-.61.16-1.23.31-1.84.49-.71.21-1.21.8-1.88,1.11-.13.06-.23.28-.14.51.45.1.92.18,1.39.31.32.08.52.28.51.65-.02.49.01.97-.01,1.46-.02.45-.24.81-.62,1.06-.14.09-.41.04-.38.3.03.26.28.28.48.34.15.04.29.13.43.13,1.45-.03,2.72.84,4.18.78.35-.01.69.25.82.62.14.39-.14.61-.41.82-.77.58-1.79.65-2.57,1.21-1.24,0-2.07,1.08-3.26,1.25-.26.04-.67.41-.57.81.08.32.47.14.73.18.06,0,.12,0,.18,0,.69.07.99.41,1.01,1.12.02.45-.08.92.07,1.36.13.41-.05.56-.41.62-.32.05-.63.14-.91.36.18.34.4.47.73.56,1.58.45,3.24.56,4.82,1.07.35.11.52.27.6.58.08.3-.04.52-.28.71-.77.59-1.61,1.1-2.56,1.26-1.25.22-2.36.69-3.43,1.32-.1.06-.2.13-.31.19-.16.1-.3.22-.29.43.01.24.24.23.39.31.33.19.75.04,1.05.25.87.6,1.83.89,2.89.89.06,0,.11.05.17.05.97.01,1.87.52,2.86.41.19-.02.36.04.5.17.14.12.27.25.27.45,0,.24-.2.27-.37.33-.86.29-1.76.42-2.66.51-.66.06-1.32.14-1.94.41-.23.1-.49.22-.7.12-.58-.26-1.14-.03-1.69.05-.67.1-1.32.47-2.03.19-.09-.03-.23.06-.34.09-1.24.33-2.52.3-3.78.39-1.41.1-2.83.02-4.25.02-2.31,0-4.62-.02-6.93.01-.82.01-1.61-.26-2.44-.2-.39.03-.64-.32-.94-.51-.06-.04-.1-.16-.1-.24-.01-.34.65-1.32.98-1.44,1.18-.4,2.37-.74,3.63-.73.91.01,1.79-.25,2.71-.21.38.02.77-.12,1.15-.24.18-.06.49-.02.5-.3,0-.27-.25-.27-.46-.34-.6-.2-1.26-.13-1.84-.26-.96-.22-1.91-.15-2.85-.21-1.35-.09-2.68-.27-4.01-.46-.8-.11-1.27-.63-1.57-1.36-.19-.47-.19-.88.21-1.24.18-.16.32-.34.4-.59.23-.81.43-1.61.82-2.38.57-1.13,1.68-2.08,2.91-2.04,1,.03,1.92-.38,2.94-.31.78.06,1.59-.29,2.42-.28.32,0,.62-.12.91-.34-.54-.39-1.01-.76-1.67-.73-1.22.06-2.43-.1-3.63-.23-1.1-.12-2.2-.32-3.3-.44-.19-.02-.33-.09-.5-.13-.81-.2-.97-1.03-1.48-1.51-.15-.14-.05-.31.07-.47.33-.43.54-.89.54-1.48,0-.87.58-1.59.98-2.3.57-1.02,1.67-1.48,2.81-1.63,1.5-.19,3.01-.24,4.51-.4.59-.06,1.22-.07,1.87-.41-1.74-.95-3.55-.87-5.31-.95-.45-.02-.89-.07-1.32-.15-.56-.1-1.11-.38-1.69-.29-.82.13-1.31-.25-1.7-.9-.11-.18-.27-.33-.38-.51-.26-.39-.25-.88.07-1.25.14-.16.33-.28.3-.52-.07-.6.18-1.12.35-1.67.18-.55.28-1.12.87-1.41.26-.13.16-.58.46-.64.6-.12,1.13-.47,1.72-.57,1.49-.24,3-.25,4.48-.57.18-.04.37,0,.53-.07.17-.07.27-.25.27-.44,0-.2-.21-.17-.33-.25-.7-.43-1.5-.24-2.24-.29-1.6-.11-3.18-.32-4.75-.6-.82-.15-1.73-1.02-1.89-1.84-.05-.24-.07-.49.14-.68.29-.26.32-.62.41-.98.13-.52.24-1.04.42-1.55.18-.49.59-.74.78-1.19.34-.8,1.16-1.24,1.88-1.34,1.22-.17,2.43-.42,3.68-.47.79-.03,1.63-.02,2.42-.27.21-.07.56.03.59-.3.03-.34-.33-.33-.53-.38-.94-.24-1.87-.51-2.85-.46-.6.04-1.24.05-1.78-.06-1.2-.25-2.45-.12-3.62-.49-.97-.31-1.81-.74-2.43-1.65-.49-.72-.76-1.53-1.24-2.22.29-.3.61-.47.95-.6.11-.04.19-.15.14-.29-.03-.11-.13-.14-.21-.13-.94.08-1.86-.18-2.8-.19-.13-.06-.18-.18-.19-.31,0-.11-.05-.19-.14-.24-.05-.02-.06-.05-.05-.09.03-.29.1-.59-.33-.63,0,0,0,0,0,0-.04-.06-.07-.12-.11-.18-.02-.06-.05-.13-.07-.19-.06-.59-.22-1.14-.55-1.64-.11-.24-.17-.48-.14-.75.07-.45.07-.88-.24-1.26-.16-.25-.19-.53-.2-.82-.09-.21.41-.58-.18-.64-.1-.1-.12-.23-.11-.36.02-.02.06-.05.05-.06-.03-.04-.06-.07-.1-.11-.05-.02-.06-.06-.03-.1.36-.49-.02-.73-.34-.99l-.04-.03s.02-.05.02-.05c.09-.5-.02-1,.06-1.5.05-.34-.07-.68-.56-.61-.14-.48-.22-.97-.2-1.47.24-.35.57-.72.27-1.15-.41-.59-.39-1.24-.47-1.89-.07-.57.01-1.2-.4-1.69-.11-.24-.12-.49-.09-.75.35-.76-.06-1.45-.22-2.17-.12-.24-.19-.48-.13-.75.26-.25.09-.45-.06-.66-.08-.13-.13-.28-.1-.43.17-.25.19-.49-.06-.7-.05-.31-.2-.6-.15-.93.16-.14.18-.34.11-.5-.29-.72-.14-1.54-.55-2.23-.13-.17-.13-.36-.12-.56.25-.23-.03-.4-.08-.6-.06-.03-.08-.07-.05-.13.05-.03.1-.06.14-.09-.06-.01-.11-.02-.17-.04-.02-.04-.02-.07.01-.1.1-.26.2-.51-.14-.68-.09-.11-.09-.24-.08-.38.02-.02.05-.05.05-.05-.02-.04-.05-.08-.08-.11-.02-.15-.04-.29-.06-.44.08-.45-.05-.84-.31-1.21,0,0,0-.03,0-.03,0-.03,0-.06-.02-.09-.11-.19-.15-.4-.14-.62.22-.17.12-.28-.08-.35-.09-.11-.11-.24-.1-.38,0-.57.09-1.17-.4-1.62,0,0,0,0,0,0-.03-.06-.06-.11-.1-.17-.12-.17-.09-.36-.09-.55,0-.26.1-.56-.2-.75,0,0-.01-.07-.01-.07.06-.46-.04-.87-.39-1.2-.09-.11-.12-.23-.1-.37.24-.23.1-.31-.13-.35-.03-.11-.06-.22-.09-.33.02-.15.01-.29-.13-.39-.02-.07-.04-.13-.06-.2.03-.03.07-.06.1-.1-.05,0-.09,0-.14,0,0,0,0-.03,0-.03.04-.1.01-.17-.08-.23-.29-.31-.29-.73-.38-1.11.3-.31,0-.4-.19-.53-.05-.02-.06-.06-.03-.11.01-.11-.03-.2-.11-.27,0,0-.02-.05-.02-.05-.04-.23.07-.52-.21-.67Z"/>
+    </g>
+  </g>
+</svg>`;
+
+    const svgInactivo = `<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Capa_2" data-name="Capa 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 196.57 336.54">
+  <defs><style>.ina-1 { stroke-width: 0px; } .ina-2 { fill: none; stroke: #000; stroke-miterlimit: 10; stroke-width: 5px; }</style></defs>
+  <g id="Capa_1-2" data-name="Capa 1"><g>
+      <path class="ina-2" d="m57.13,248.82c-.77-.26-1.07-.86-1.39-1.46-1.17-2.19-1.93-4.52-2.47-6.94-.73-3.26-1.03-6.57-1.44-9.87-.46-3.73-.88-7.47-1.5-11.18-.44-2.6-.94-5.18-1.53-7.74-.66-2.85-1.52-5.65-2.47-8.42-1.58-4.61-3.5-9.07-5.66-13.43-2.71-5.47-5.74-10.75-8.91-15.96-4.31-7.08-8.92-13.99-13.17-21.1-3.72-6.21-7.08-12.6-9.71-19.36-1.27-3.26-2.46-6.56-3.3-9.95-.88-3.52-1.73-7.05-2.18-10.66-.39-3.11-.69-6.21-.77-9.35-.05-2.23-.05-4.46-.1-6.68-.06-2.94.2-5.86.52-8.77.5-4.64,1.39-9.21,2.58-13.72,1.35-5.13,3.11-10.12,5.3-14.95,1.72-3.8,3.68-7.46,5.86-11.02,2.32-3.79,4.92-7.37,7.72-10.79,2.34-2.86,4.81-5.61,7.51-8.14,2.74-2.57,5.57-5.04,8.59-7.31,3.12-2.34,6.34-4.53,9.71-6.49,4.5-2.61,9.15-4.91,14.06-6.67,1.66-.59,3.28-1.3,4.97-1.82,2.42-.74,4.86-1.41,7.32-1.98,1.65-.38,3.31-.79,4.98-1.08,2.36-.41,4.74-.71,7.11-1.01,2.81-.36,5.63-.47,8.46-.44.67,0,.72.09.74.76.03.94-.19,1.84-.39,2.75-.64,2.93-1.8,5.63-3.33,8.19-.03.06-.07.11-.09.18-1.71,4.11-3.75,8.08-4.91,12.42-.48,1.79-.96,3.59-1.42,5.39-.19.76-.06,1.49.39,2.2,2.71,4.32,5.38,8.66,8.07,12.99,2.25,3.62,4.51,7.24,6.74,10.87.33.54.74.9,1.32,1.15,8.64,3.85,17.27,7.72,25.92,11.56.76.34,1.13.73,1.13,1.62.02,4.54.96,8.92,2.4,13.21.96,2.85,2.12,5.61,3.85,8.1.48.68.98,1.34,1.59,1.92,1.43,1.36,3.13,1.83,5.06,1.51.3-.05.59-.11.88-.16.92-.17.99-.13,1.33.74.83,2.11,1.64,4.22,2.47,6.33.57,1.46,1.31,2.88,1.66,4.39.3,1.28,1.09,1.97,2,2.7,5.63,4.48,11.25,8.97,16.88,13.46.43.35.77.8,1.38.93.93.2,1.08.19,1.5-.67.87-1.77,1.91-3.43,3.12-4.99,2.09-2.71,4.45-5.13,7.4-6.92.6-.37,1.22-.69,1.88-.93.48-.18.95-.28,1.46-.17.81.17,1.5-.01,2.09-.63.34-.36.77-.64,1.13-.98.34-.32.66-.4,1.07-.15,1.06.64,2.12,1.26,3.18,1.89.4.24.53.51.32.99-.36.83-.47,1.73-.65,2.61-.46,2.32-1.1,4.6-1.72,6.88-.87,3.15-1.96,6.22-3.12,9.27-1.05,2.77-2.31,5.46-3.56,8.14-2.33,5.02-5.08,9.82-7.83,14.61-1.56,2.71-3.23,5.36-4.85,8.04-2.15,3.56-4.3,7.13-6.45,10.7-1.94,3.23-3.79,6.5-5.6,9.8-1.15,2.1-2.24,4.22-3.33,6.35-.55,1.08-1.01,2.2-1.63,3.24-.32.53-.51,1.14-.75,1.72-.53,1.28-1.11,2.52-1.79,3.73-.18.32-.18.75-.3,1.12-.65,1.99-1.55,3.89-2.16,5.9-.52,1.71-.97,3.44-1.5,5.15-.75,2.42-1.17,4.92-1.66,7.39-.54,2.69-.93,5.42-1.2,8.17-.18,1.85-.38,3.7-.62,5.55-.38,2.95-.56,5.94-1.23,8.85-.55,2.44-1.18,4.86-2.4,7.07-.26.47-.51.94-1.02,1.26.13.27.56.24.57.61,0,.3-.17.5-.35.69-.33.34-.37.77-.37,1.21,0,1.1-.03,2.2,0,3.3.04,1.34-.12,2.66-.18,3.99-.03.82-.41,1.39-1.03,1.83-.49.34-1,.66-1.52.96-.61.35-.9.83-.87,1.55.04.93.02,1.87,0,2.8-.01.64.27,1.07.79,1.4.57.35,1.14.69,1.68,1.08,1.23.9,1.27,2.22.08,3.19-.51.42-1.07.79-1.62,1.16-.63.42-.97.97-.94,1.75.03.87.04,1.73,0,2.6-.03.72.25,1.19.86,1.56.54.33,1.05.71,1.55,1.09,1.31.98,1.31,2.43,0,3.41-.53.4-1.1.75-1.66,1.1-.5.31-.74.73-.73,1.32.02,1.03.01,2.07,0,3.1,0,.59.24,1,.72,1.33.72.48,1.45.96,2.06,1.58.9.92.84,2.16-.18,2.95-.5.39-1.05.7-1.59,1.03-.68.42-1.09.96-1,1.8.01.13,0,.27,0,.4,0,2.36.06,2.54,2.14,3.69.64.35,1.06.72,1.18,1.46.11.72-.09,1.32-.51,1.87-.43.55-.88,1.09-1.36,1.6-2.49,2.6-5.09,5.09-7.74,7.51-2.5,2.29-5.04,4.55-7.54,6.85-2.48,2.27-4.82,4.69-7.11,7.16-1.63,1.76-3.37,3.41-5.06,5.11-.42.42-.96.6-1.53.68-1.85.24-3.69.42-5.57.48-2,.06-3.99.24-5.99.13-2.39-.13-4.79-.09-7.16-.55-.85-.17-1.54-.53-2.16-1.14-3.11-3.06-6.21-6.13-9.38-9.13-2.59-2.45-5.27-4.79-7.98-7.1-1.42-1.21-2.78-2.48-4.18-3.72-1.52-1.35-3.05-2.69-4.57-4.03-.1-.09-.2-.18-.3-.26-1.03-.78-1.56-1.74-1.39-3.09.11-.85,0-1.73.02-2.6,0-.74-.31-1.28-.92-1.67-.45-.29-.92-.54-1.37-.83-1.56-.98-1.66-2.41-.23-3.58.46-.38.98-.7,1.48-1.02.7-.45,1.07-1.06,1.04-1.91-.02-.83-.02-1.67,0-2.5.02-.66-.22-1.16-.8-1.5-.37-.22-.74-.46-1.1-.69-.28-.18-.59-.33-.82-.56-.83-.82-1.27-1.78-.11-2.94.5-.5,1.06-.91,1.68-1.25.78-.42,1.17-1.05,1.15-1.94-.02-.77-.02-1.53,0-2.3.02-.86-.35-1.47-1.08-1.88-.67-.38-1.32-.79-1.83-1.38-.97-1.11-.81-2.21.43-3.03.53-.35,1.06-.69,1.59-1.03.57-.37.9-.86.88-1.57-.02-.87-.01-1.73,0-2.6,0-.66-.24-1.16-.81-1.5-.37-.22-.73-.46-1.1-.7-.2-.13-.4-.24-.58-.38-1.42-1.12-1.42-2.32.02-3.44.42-.33.85-.64,1.3-.93.77-.49,1.17-1.16,1.17-2.07,0-.8,0-1.6,0-2.4.01-.78-.36-1.33-1.01-1.71-.52-.3-1.02-.62-1.52-.96-.73-.5-1.04-1.18-1.06-2.04-.02-.83.09-1.68-.57-2.36-.19-.19-.11-.44.12-.6.16-.11.34-.2.51-.3Z"/>
+      <path class="ina-1" d="m91.25,259.6c5.45.6,10.96.17,16.27-1.18,1.31-.33,2.1-1.79,1.75-3.08-.39-1.42-1.74-1.96-3.08-1.75-3.8.61-7.6,1.23-11.4,1.84-.88.14-1.48.98-1.75,1.75-.49,1.4,0,2.67.87,3.76l1.1-4.18c-1.91.51-5.21,1.64-5.28,4.01-.07,2.17,1.89,3.33,3.8,3.49,2.04.16,4.13.06,6.17.08,2.29.02,4.58.05,6.88.07l-2.5-2.5c-.03-.71,1.04-1,.12-.78-.22.05-.82.1-1.27.14-1.43.13-2.86.25-4.29.38-2.78.24-5.57.49-8.35.73-1.01.09-1.89.55-2.28,1.54-.34.84-.27,2.12.52,2.73,2.53,1.96,5.4,2.37,8.53,2.36,2.23,0,5.18-.42,6.87,1.07l1.77-4.27c-3.36.43-6.71.86-10.07,1.29-2.62.34-8.85.2-7.72,4.53.83,3.2,4.73,3.46,7.41,3.43,3.46-.04,6.93-.07,10.39-.11l-.66-4.91c-4.2.68-8.41,1.36-12.61,2.04-2.39.39-2.38,4.42,0,4.82,4.37.73,8.74,1.46,13.11,2.18l.66-4.91c-4.6-.34-9.21-.68-13.81-1.02v5c4-.52,7.93-.19,11.78,1.04l.66-4.91c-2.77.12-5.53.24-8.3,3.7-2.53.11-5.38-.03-6.86,2.44-.92,1.54.24,3.9,2.16,3.76,3.97-.29,7.93-.58,11.9-.87l-.66-4.91c-2.47.73-4.94,1.45-7.41,2.18-1.06.31-1.84,1.3-1.84,2.41,0,1.19.8,1.98,1.84,2.41,2.46,1.02,5.17,1.41,7.82,1.13,1.34-.14,2.5-1.05,2.5-2.5,0-1.24-1.15-2.64-2.5-2.5-2.28.24-4.37-.07-6.49-.95v4.82c2.47-.73,4.94-1.45,7.41-2.18,2.61-.77,2.24-5.12-.66-4.91-3.97.29-7.93.58-11.9-.87l2.16,3.76c-.3.5-.44.06.07.15.38.07.9-.04,1.28-.06,1.03-.05,2.06-.09,3.08-.14,2.13-.09,4.27-.19,6.4-.28,2.82-.12,3.39-4.04.66-4.91-4.22-1.35-8.71-1.78-13.11-1.22-1.34.17-2.5,1.03-2.5,2.5s1.15,2.4,2.5,2.5c4.6.34,9.21.68,13.81,1.02,2.78.2,3.46-4.45.66-4.91-4.37-.73-8.74-1.46-13.11-2.18v4.82c4.2-.68,8.41-1.36,12.61-2.04,2.82-.46,2.1-4.94-.66-4.91s-5.32.06-7.97.08c-1.22.01-2.44.05-3.66.03-.35,0-.71,0-1.05-.08-.63-.12-.42-.32-.32.16v1.33l.08-.23-.64,1.1c-.47.23-.59.31-.34.24l.96-.12,1.92-.25,3.6-.46c2.48-.32,4.95-.63,7.43-.95,1.01-.13,1.88-.52,2.28-1.54.35-.88.24-2.06-.52-2.73-2.38-2.09-5.3-2.54-8.37-2.55-2.17,0-5.28.48-7.03-.88l-1.77,4.27c3.74-.33,7.47-.65,11.21-.98,2.87-.25,7.75-.4,7.58-4.49-.06-1.36-1.1-2.49-2.5-2.5-2.37-.02-4.75-.05-7.12-.07-1.15-.01-2.29-.02-3.44-.04-.57,0-1.15-.03-1.72-.02-.52-.05-.65-.04-.39.02-.56-.18-.4-.03.49.45l.34,1.26v-.24c-.42.72-.83,1.44-1.25,2.16.9-.63,1.78-1.06,2.85-1.35,1.97-.52,2.23-2.77,1.1-4.18l.42,1.1-1.75,1.75c3.8-.61,7.6-1.23,11.4-1.84l-1.33-4.82c-4.9,1.25-9.92,1.56-14.94,1-1.34-.15-2.5,1.25-2.5,2.5,0,1.47,1.15,2.35,2.5,2.5h0Z"/>
+      <path class="ina-1" d="m90.73,291.43c5.85.23,11.74-.48,17.38-2.06l-1.93-4.57c-4.08,1.88-8.51,2.54-12.98,2.17-1.91-.16-3.1,2.24-2.16,3.76,1.66,2.7,4.58,4.05,7.67,4.24,3.4.21,6.63-1.31,9.63-2.72l-3.03-3.93c-1.07,1.18-2.06,1.93-3.57,2.59-1.13.49-2.62.77-3.95.75-1.46-.02-2.9-.26-4.36-.2-1.92.08-3.62.63-5.08,1.91-1.12.98-.92,3.29.51,3.93,3.08,1.36,6.32,1.67,9.65,1.85.77.04,1.54.08,2.31.14.38.03.76.06,1.14.1.19.02.38.04.57.06-.19-.03-.13-.02.18.03,1.45.25,2.82.62,3.93,1.21l1.26-4.66c-4.86-.62-9.72-1.23-14.57-1.85-1.34-.17-2.5,1.27-2.5,2.5,0,1.49,1.15,2.33,2.5,2.5,4.86.62,9.72,1.23,14.57,1.85,1.07.14,2.15-.87,2.41-1.84.29-1.04-.18-2.3-1.15-2.82-2.95-1.58-6.2-1.97-9.5-2.16-1.54-.09-3.08-.15-4.62-.32-.86-.1-2.82-.54-3.67-.91l.51,3.93c-.19.16-.02,0,.09-.06.14-.08.28-.17.43-.23-.38.16.13-.01.2-.03.04-.01.51-.12.27-.07s.25-.02.29-.03c.17-.01.34-.02.51-.02.4,0,.79,0,1.19.03,1.54.08,3.06.27,4.61.09,3.58-.42,6.93-2.03,9.37-4.71.84-.92.99-2.29.2-3.28s-2.07-1.19-3.23-.64c-2.08.98-4.36,2.06-6.61,2.05-.25,0-.5-.01-.75-.03-.18-.02-.17-.01.04.01-.12-.02-.25-.04-.37-.07-.25-.05-.49-.11-.73-.19-.1-.03-.68-.25-.51-.18-.62-.28-1.18-.74-1.54-1.32l-2.16,3.76c5.35.44,10.65-.62,15.51-2.85,1.12-.51,1.48-2.08,1.02-3.12-.49-1.12-1.72-1.79-2.95-1.45-5.24,1.47-10.61,2.09-16.05,1.88-1.35-.05-2.5,1.19-2.5,2.5,0,1.4,1.15,2.45,2.5,2.5h0Z"/>
+      <path class="ina-1" d="m127.49,266.38c3.3.12,6.59-.13,9.85-.65.58-.09,1.21-.67,1.49-1.15.31-.54.45-1.33.25-1.93s-.57-1.19-1.15-1.49c-.63-.33-1.23-.36-1.93-.25-.18.03-.36.06-.54.08-.12.02-.24.03-.36.05.34-.04.41-.05.22-.03-.36.04-.72.09-1.08.13-.75.08-1.5.14-2.25.19-1.5.09-3.01.1-4.52.05-1.31-.05-2.56,1.18-2.5,2.5.06,1.39,1.1,2.45,2.5,2.5h0Z"/>
+      <path class="ina-1" d="m63.66,292.26c3.25-.6,6.5-1.21,9.74-1.81.97-.18,1.6-1.4,1.31-2.31-.33-1.03-1.27-1.5-2.31-1.31-3.25.6-6.5,1.21-9.74,1.81-.97.18-1.6,1.4-1.31,2.31.33,1.03,1.27,1.5,2.31,1.31h0Z"/>
+      <path class="ina-1" d="m62.13,302h3.57c.48,0,.99-.21,1.33-.55s.57-.86.55-1.33-.18-.99-.55-1.33-.82-.55-1.33-.55h-3.57c-.48,0-.99.21-1.33.55s-.57.86-.55,1.33.18.99.55,1.33.82.55,1.33.55h0Z"/>
+      <path class="ina-1" d="m63.04,299.68l-1.99,2.59c-.14.22-.21.45-.22.7-.06.25-.04.5.03.75.06.24.17.46.34.64.13.2.31.37.53.48.44.23.96.35,1.44.19l.45-.19c.28-.17.51-.39.67-.67l1.99-2.59c.14-.22.21-.45.22-.7.06-.25.04-.5-.03-.75-.06-.24-.17-.46-.34-.64-.13-.2-.31-.37-.53-.48-.44-.23-.96-.35-1.44-.19l-.45.19c-.28.17-.51.39-.67.67h0Z"/>
+    </g></g>
+</svg>`;
+
+    // 2. DATOS DE FACULTADES Y SVGs DE TÍTULO
+    const facultades =[
+      {
+        id: "fapyd",
+        activos: 312, inactivos: 89,
+        svg: `<?xml version="1.0" encoding="UTF-8"?><svg id="Capa_2" data-name="Capa 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 982.45 78.95"><defs><style>.cls-1 { fill: #fff; font-family: OldPress, 'Old Press'; font-size: 74.04px; }</style></defs><g id="Capa_1-2" data-name="Capa 1"><text class="cls-1" transform="translate(0 62.94)"><tspan x="0" y="0">Facultad de Arquitectura, Planeamiento y Diseño</tspan></text></g></svg>`,
+        testimoniosActivos:[
+          { nombre: "Lucía", edad: 24, frase: "Amo el taller, me da una comunidad increíble." },
+          { nombre: "Martín", edad: 22, frase: "Estudio lo que me gusta sin endeudar a mi familia." },
+          { nombre: "Julieta", edad: 25, frase: "El diseño me cambió la forma de ver la ciudad." },
+          { nombre: "Ezequiel", edad: 21, frase: "Viajo todos los días en colectivo, pero vale la pena." }
+        ],
+        testimoniosInactivos:[
+          { nombre: "Juan", edad: 20, frase: "Tuve que dejar para trabajar, no alcanzaba para los materiales." },
+          { nombre: "Sofía", edad: 23, frase: "Los costos de impresión y plotters me dejaron afuera." },
+          { nombre: "Marcos", edad: 21, frase: "Conseguí un trabajo full time y los horarios no daban." }
+        ]
+      },
+      {
+        id: "derecho",
+        activos: 450, inactivos: 120,
+        svg: `<?xml version="1.0" encoding="UTF-8"?><svg id="Capa_2" data-name="Capa 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 394.9 78.95"><defs><style>.cls-1 { fill: #fff; font-family: OldPress, 'Old Press'; font-size: 74.04px; }</style></defs><g id="Capa_1-2" data-name="Capa 1"><text class="cls-1" transform="translate(0 62.94)"><tspan x="0" y="0">Facultad de Derecho</tspan></text></g></svg>`,
+        testimoniosActivos:[
+          { nombre: "Agustín", edad: 22, frase: "El derecho es mi herramienta para buscar justicia social." },
+          { nombre: "Camila", edad: 21, frase: "Amo los debates en clase, te abren la cabeza constantemente." },
+          { nombre: "Joaquín", edad: 25, frase: "Con esfuerzo logré mantener la regularidad mientras trabajo." }
+        ],
+        testimoniosInactivos:[
+          { nombre: "Rodrigo", edad: 22, frase: "Tuve que elegir entre comer o comprar los códigos actualizados." },
+          { nombre: "Mariana", edad: 24, frase: "Cuidar a mi mamá enferma me demandó todo el tiempo." },
+          { nombre: "Leandro", edad: 20, frase: "Frustración total. Abandoné para aportar en mi casa." }
+        ]
+      },
+      {
+        id: "medicina",
+        activos: 490, inactivos: 145,
+        svg: `<?xml version="1.0" encoding="UTF-8"?><svg id="Capa_2" data-name="Capa 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 572.54 78.95"><defs><style>.cls-1 { fill: #fff; font-family: OldPress, 'Old Press'; font-size: 74.04px; }</style></defs><g id="Capa_1-2" data-name="Capa 1"><text class="cls-1" transform="translate(0 62.94)"><tspan x="0" y="0">Facultad de Ciencias Médicas</tspan></text></g></svg>`,
+        testimoniosActivos:[
+          { nombre: "Nicolás", edad: 24, frase: "Quiero ser médico en un hospital público. Ese es mi motor." },
+          { nombre: "Brenda", edad: 22, frase: "A veces duermo 4 horas, pero la pasión es más fuerte." },
+          { nombre: "Julián", edad: 25, frase: "Llegar a la residencia es mi meta. Falta menos." }
+        ],
+        testimoniosInactivos:[
+          { nombre: "Damián", edad: 23, frase: "Es una carrera full-time. Cuando necesité trabajar, la dejé." },
+          { nombre: "Celeste", edad: 25, frase: "Fui mamá y el sistema no contempla los tiempos de cuidado." },
+          { nombre: "Héctor", edad: 22, frase: "No aguanté la presión económica y mental." }
+        ]
+      },
+      {
+        id: "humanidades",
+        activos: 280, inactivos: 115,
+        svg: `<?xml version="1.0" encoding="UTF-8"?><svg id="Capa_2" data-name="Capa 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 78.95"><defs><style>.cls-1 { fill: #fff; font-family: OldPress, 'Old Press'; font-size: 74.04px; }</style></defs><g id="Capa_1-2" data-name="Capa 1"><text class="cls-1" transform="translate(0 62.94)"><tspan x="0" y="0">Facultad de Humanidades y Artes</tspan></text></g></svg>`,
+        testimoniosActivos:[
+          { nombre: "Elena", edad: 24, frase: "El arte es trinchera. Es mi forma de resistencia." },
+          { nombre: "Federico", edad: 26, frase: "Amo perderme en la biblioteca central, es mi refugio." },
+          { nombre: "Nadia", edad: 22, frase: "Trabajo de noche, curso de día. Todo por ser profesora." }
+        ],
+        testimoniosInactivos:[
+          { nombre: "Micaela", edad: 23, frase: "El boleto aumentó tanto que cursar tres veces era un lujo." },
+          { nombre: "Lautaro", edad: 25, frase: "La inestabilidad laboral me obligó a priorizar generar ingresos." },
+          { nombre: "Valeria", edad: 22, frase: "Tuve que volver a mi provincia, el alquiler se triplicó." }
+        ]
+      }
+    ];
+
+    // 3. ESTADO Y REFERENCIAS
+    let currentFacIndex = 0;
+    const TOTAL_INITIAL_NODES = 1500; 
+    
+    const cloudArea = document.getElementById('cloud-area');
+    const tooltip = document.getElementById('tooltip');
+    const ttNombre = document.getElementById('tt-nombre');
+    const ttFrase = document.getElementById('tt-frase');
+
+    const titleContainer = document.getElementById('faculty-title');
+    const countActivos = document.getElementById('count-activos');
+    const countInactivos = document.getElementById('count-inactivos');
+    const btnPrev = document.getElementById('btn-prev');
+    const btnNext = document.getElementById('btn-next');
+
+    // 4. LÓGICA DE INTERFAZ
+    function init() { renderFaculty(); }
+
+    function renderFaculty() {
+      const fac = facultades[currentFacIndex];
+      titleContainer.innerHTML = fac.svg;
+      countActivos.textContent = fac.activos;
+      countInactivos.textContent = fac.inactivos;
+
+      cloudArea.innerHTML = '';
+      generateCloud(fac);
+    }
+
+    function generateCloud(fac) {
+      const rect = cloudArea.getBoundingClientRect();
+      const ratioActivos = fac.activos / (fac.activos + fac.inactivos);
+      const fragment = document.createDocumentFragment();
+
+      for(let i = 0; i < TOTAL_INITIAL_NODES; i++) {
+        const isActivo = Math.random() < ratioActivos;
+        
+        const pool = isActivo ? fac.testimoniosActivos : fac.testimoniosInactivos;
+        const testimonio = pool[Math.floor(Math.random() * pool.length)];
+
+        const foco = createFocoDOM(testimonio, isActivo, rect);
+        fragment.appendChild(foco);
+      }
+
+      cloudArea.appendChild(fragment);
+    }
+
+    function createFocoDOM(testimonio, isActivo, rect) {
+      const foco = document.createElement('div');
+      foco.className = `foco-wrapper ${isActivo ? 'activo' : 'inactivo'}`;
+      
+      // INYECCIÓN DE SVG DIRECTO
+      foco.innerHTML = isActivo ? svgActivo : svgInactivo;
+      
+      foco.dataset.nombre = testimonio.nombre;
+      foco.dataset.edad = testimonio.edad;
+      foco.dataset.frase = testimonio.frase;
+
+      // Layout: Distribución Gaussiana (Campana)
+      const x = rect.width * ((Math.random() + Math.random() + Math.random()) / 3);
+      const y = rect.height * ((Math.random() + Math.random() + Math.random()) / 3);
+
+      foco.style.left = `${x}px`;
+      foco.style.top = `${y}px`;
+
+      foco.addEventListener('mouseenter', handleMouseEnter);
+      foco.addEventListener('mouseleave', handleMouseLeave);
+      
+      return foco;
+    }
+
+    // 5. NAVEGACIÓN
+    btnPrev.addEventListener('click', () => {
+      currentFacIndex = (currentFacIndex - 1 + facultades.length) % facultades.length;
+      renderFaculty();
+    });
+
+    btnNext.addEventListener('click', () => {
+      currentFacIndex = (currentFacIndex + 1) % facultades.length;
+      renderFaculty();
+    });
+
+    // 6. INTERACCIÓN HOVER & TOOLTIP
+    function handleMouseEnter(e) {
+      const foco = e.currentTarget;
+      const isActivo = foco.classList.contains('activo');
+      
+      const estadoStr = isActivo ? 'ACTIVO' : 'BAJA';
+      ttNombre.textContent = `${foco.dataset.nombre}, ${foco.dataset.edad} AÑOS — ${estadoStr}`;
+      ttFrase.textContent = `"${foco.dataset.frase}"`;
+      
+      if(!isActivo) tooltip.classList.add('inactivo-style');
+      else tooltip.classList.remove('inactivo-style');
+
+      const randomRot = (Math.random() * 6 - 3).toFixed(2);
+      const rect = foco.getBoundingClientRect();
+      
+      let ttX = rect.right + 15; 
+      let ttY = rect.top - 10;
+
+      if (ttX + 280 > window.innerWidth) ttX = rect.left - 290; 
+      if (ttY < 80) ttY = 80;
+      if (ttY + tooltip.offsetHeight > window.innerHeight - 80) {
+        ttY = window.innerHeight - tooltip.offsetHeight - 90;
+      }
+
+      tooltip.style.left = `${ttX}px`;
+      tooltip.style.top = `${ttY}px`;
+      tooltip.style.transform = `rotate(${randomRot}deg)`;
+      tooltip.classList.add('show');
+    }
+
+    function handleMouseLeave() { tooltip.classList.remove('show'); }
+
+    // 7. PARTICIPACIÓN FORMULARIO
+    const form = document.getElementById('form-experiencia');
+    const inputNombre = document.getElementById('input-nombre');
+    const inputEdad = document.getElementById('input-edad');
+    const inputFrase = document.getElementById('input-frase');
+    const inputEstado = document.getElementById('input-estado');
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const nombre = inputNombre.value.trim();
+      const edad = inputEdad.value.trim();
+      const frase = inputFrase.value.trim();
+      const isActivo = inputEstado.checked;
+      
+      if(!nombre || !edad || !frase) return;
+
+      const rect = cloudArea.getBoundingClientRect();
+      
+      const testimonio = { nombre, edad, frase };
+      
+      const nuevoFoco = createFocoDOM(testimonio, isActivo, rect);
+      nuevoFoco.style.left = `${rect.width / 2 + (Math.random() * 60 - 30)}px`;
+      nuevoFoco.style.top = `${rect.height / 2 + (Math.random() * 60 - 30)}px`;
+      
+      cloudArea.appendChild(nuevoFoco);
+
+      if (isActivo) {
+        facultades[currentFacIndex].activos++;
+        countActivos.textContent = facultades[currentFacIndex].activos;
+      } else {
+        facultades[currentFacIndex].inactivos++;
+        countInactivos.textContent = facultades[currentFacIndex].inactivos;
+      }
+      
+      setTimeout(() => {
+        nuevoFoco.classList.add('hovered');
+        handleMouseEnter({ currentTarget: nuevoFoco });
+        
+        setTimeout(() => {
+          nuevoFoco.classList.remove('hovered');
+          tooltip.classList.remove('show');
+        }, 3500);
+      }, 100);
+
+      inputNombre.value = "";
+      inputEdad.value = "";
+      inputFrase.value = "";
+    });
+
+    window.addEventListener('DOMContentLoaded', init);
+    
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => { renderFaculty(); }, 250);
+    });
+  </script>
+</body>
+</html>
